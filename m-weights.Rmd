@@ -198,7 +198,7 @@ R <- diag(rowSums(M)) - M
 
 R # This is the "unscaled" structure matrix, in that it doesn't have generalised variance of one
 
-R_scaled <- bsae::scale_gmrf_precision(R)$Q
+R_scaled <- scale_gmrf_precision(R)$Q
 R_scaled <- as(R_scaled, "sparseMatrix")
 
 R_scaled # And this is the scaled version, in "sparseMatrix" form
