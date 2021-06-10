@@ -58,7 +58,6 @@ In area 1 we only test a single person and they're positive.
 In area 3 we test 100 people and none of them are positive.
 It's reasonable that the middle should be smoothed lower than 0.2: at least to me, 0/100 is much more convincing than 1/1.
 
-
 ```{r}
 dat <- list(
   id = 1:3,
@@ -211,16 +210,50 @@ wicar <- INLA::inla.rgeneric.define(inla.rgeneric.wicar.model, R = R_scaled)
 
 formula <- y ~ 1 + f(id, model = wicar)
 
-fit3 <- INLA::inla(formula,
-                   family = "binomial",
-                   control.family = list(control.link = list(model = "logit")),
-                   data = dat,
-                   Ntrials = m,
-                   control.predictor = list(compute = TRUE, link = 1),
-                   verbose = TRUE)
+# For some reason this is crashing INLA now, need to debug, but it worked before..
 
-fit3$summary.fitted.values
-plot(fit3$marginals.fitted.values[[2]], type = "l")
+# fit3 <- INLA::inla(formula,
+#                    family = "binomial",
+#                    control.family = list(control.link = list(model = "logit")),
+#                    data = dat,
+#                    Ntrials = m,
+#                    control.predictor = list(compute = TRUE, link = 1),
+#                    verbose = TRUE)
+# 
+# fit3$summary.fitted.values
+# plot(fit3$marginals.fitted.values[[2]], type = "l")
 ```
 Now the prediction in area 2 is very close to that in area 3, maybe too much.
 You can use some function of $m_i$ to reduce the effect e.g. $\log m_i$.
+
+\newpage
+
+## Experiment A
+
+Change the observed data and sample size in area 1.
+
+```{r}
+
+experiment_A <- function(yA, mA) {
+
+  dat <- list(
+    id = 1:3,
+    y = c(yA, 1, 0),
+    m = c(mA, 5, 100)
+  )
+
+  fit <- INLA::inla(formula,
+                    family = "binomial",
+                    control.family = list(control.link = list(model = "logit")),
+                    data = dat,
+                    Ntrials = m,
+                    control.predictor = list(compute = TRUE, link = 1))
+  
+  return(list("mean" = fit$summary.fitted.values[2, "mean"], "mode" = fit$summary.fitted.values[2, "mode"]))
+}
+
+experiment_A(1, 1)
+experiment_A(10, 10)
+experiment_A(100, 100)
+experiment_A(1000, 1000)
+```
