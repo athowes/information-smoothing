@@ -1,0 +1,10 @@
+script: script.R
+
+artefacts:
+  - data:
+      description: Compiled report
+      filenames:
+        - three-areas.pdf
+
+resources:
+  - three-areas.Rmd

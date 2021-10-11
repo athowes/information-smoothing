@@ -2,9 +2,9 @@
 title: "$m$-weights"
 author: Adam Howes
 output:
-  pdf_document: default
   html_document:
     df_print: paged
+  pdf_document: default
 editor_options:
   chunk_output_type: inline
 ---
@@ -12,7 +12,12 @@ editor_options:
 ## Introduction
 
 In spatial epidemiology and public health, we often model an embedding of individuals into space.
-Spatial smoothing is then described as "borrowing information between areas", despite the fact that the information is a property of individuals not of space.
+Spatial smoothing is then described as "borrowing information between areas", despite the fact that the information is a property of individuals, and not of space.
+
+*Tim's counterpoints:
+Spatial models smooth over a lot of variables, some of which are difficult or impossible to measure.
+Not all of these variables are properties of individuals.
+This is what the field "Social determinants of health" is about.*
 
 The Besag model 
 $$
@@ -95,7 +100,7 @@ fit <- INLA::inla(formula,
                   control.family = list(control.link = list(model = "logit")),
                   data = dat,
                   Ntrials = m,
-                  control.predictor = list(compute = TRUE, link = 1))
+                  control.predictor = list(compute = TRUE))
 
 fit$summary.fitted.values
 ```
@@ -120,7 +125,7 @@ fit_jeff <- INLA::inla(formula_jeff,
                        control.family = list(control.link = list(model = "logit")),
                        data = dat,
                        Ntrials = m,
-                      control.predictor = list(compute = TRUE, link = 1))
+                       control.predictor = list(compute = TRUE))
 
 fit_jeff$summary.fitted.values
 ```
@@ -197,7 +202,7 @@ R <- diag(rowSums(M)) - M
 
 R # This is the "unscaled" structure matrix, in that it doesn't have generalised variance of one
 
-R_scaled <- scale_gmrf_precision(R)$Q
+R_scaled <- bsae::scale_gmrf_precision(R)$Q
 R_scaled <- as(R_scaled, "sparseMatrix")
 
 R_scaled # And this is the scaled version, in "sparseMatrix" form
@@ -241,7 +246,14 @@ experiment_A <- function(yA, mA) {
     y = c(yA, 1, 0),
     m = c(mA, 5, 100)
   )
-
+  
+  formula <- y ~ 1 + f(id, 
+                     model = "besag", 
+                     graph = adj, 
+                     scale.model = TRUE, 
+                     constr = TRUE, 
+                     hyper = tau_prior)
+  
   fit <- INLA::inla(formula,
                     family = "binomial",
                     control.family = list(control.link = list(model = "logit")),
