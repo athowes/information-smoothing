@@ -1,5 +1,5 @@
 ---
-title: "$m$-weights"
+title: "Information smoothing"
 author: Adam Howes
 output:
   html_document:
@@ -11,21 +11,20 @@ editor_options:
 
 ## Introduction
 
-In spatial epidemiology and public health, we often model an embedding of individuals into space.
-Spatial smoothing is then described as "borrowing information between areas", despite the fact that the information is a property of individuals, and not of space.
+In spatial epidemiology and public health, it is common to model an embedding of individuals into space.
+Spatial smoothing is then described as "borrowing information between areas". 
+However, information is a property of individuals, and not of space.
 
 *Tim's counterpoints:
 Spatial models smooth over a lot of variables, some of which are difficult or impossible to measure.
 Not all of these variables are properties of individuals.
-This is what the field "Social determinants of health" is about.*
+This is what the field "social determinants of health" is about.*
 
 The Besag model 
 $$
 \phi_i \, | \, \phi_{-i} \sim \mathcal{N} \left(\frac{\sum_{j: j \sim i} \phi_j}{n_{\delta i}}, \frac{1}{n_{\delta i}\tau_\phi}\right)
 $$
-was originally designed for image analysis, where information truly is a property of space.
-In an image each pixel represents a certain fixed number of bits of information.
-Higher pixel density represents higher information density.
+was originally designed for image analysis, where information really is a property of space: in an image each pixel represents a certain fixed number of bits of information, and higher pixel density represents higher information density.
 
 More general Gaussian Markov random field models may be specified by
 $$
@@ -47,7 +46,7 @@ Uncertainties:
 
 * Maybe this can be formalised more by writing an a priori correlation structure between individuals, and then finding the spatial correlation structure that results
 * How does $m_i$ impact $\phi_j, \, j \sim i$ with the Besag model already?
-* Is there a flow of information already whereby higher sample size creates more precise estimates of $\phi_i$ which then impacts the precision of $\phi_j$? Write out the full posterior to see this properly.
+* Flow of information already whereby higher sample size creates more precise estimates of $\phi_i$ which then impacts the precision of $\phi_j$? Write out the full posterior to see this properly.
 
 \newpage
 
@@ -108,7 +107,7 @@ fit$summary.fitted.values
 The mode is `r fit$summary.fitted.values[2, "mode"]`
 
 ```{r}
-plot(fit$marginals.fitted.values[[2]], type = "l")
+# plot(fit$marginals.fitted.values[[2]], type = "l")
 ```
 
 \newpage
@@ -133,7 +132,7 @@ fit_jeff$summary.fitted.values
 With this prior on the precision (I should check exactly what it is) all of the fitted values are close to zero (even in the first area).
 
 ```{r}
-plot(fit_jeff$marginals.fitted.values[[2]], type = "l")
+# plot(fit_jeff$marginals.fitted.values[[2]], type = "l")
 ```
 
 \newpage
@@ -215,17 +214,14 @@ wicar <- INLA::inla.rgeneric.define(inla.rgeneric.wicar.model, R = R_scaled)
 
 formula <- y ~ 1 + f(id, model = wicar)
 
-# For some reason this is crashing INLA now, need to debug, but it worked before..
+fit3 <- INLA::inla(formula,
+                   family = "binomial",
+                   control.family = list(control.link = list(model = "logit")),
+                   data = dat,
+                   Ntrials = m,
+                   control.predictor = list(compute = TRUE, link = 1))
 
-# fit3 <- INLA::inla(formula,
-#                    family = "binomial",
-#                    control.family = list(control.link = list(model = "logit")),
-#                    data = dat,
-#                    Ntrials = m,
-#                    control.predictor = list(compute = TRUE, link = 1),
-#                    verbose = TRUE)
-# 
-# fit3$summary.fitted.values
+fit3$summary.fitted.values
 # plot(fit3$marginals.fitted.values[[2]], type = "l")
 ```
 Now the prediction in area 2 is very close to that in area 3, maybe too much.
@@ -238,7 +234,10 @@ You can use some function of $m_i$ to reduce the effect e.g. $\log m_i$.
 Change the observed data and sample size in area 1.
 
 ```{r}
-
+extract_info <- function(fit) {
+  c("mean" = fit$summary.fitted.values[2, "mean"], "mode" = fit$summary.fitted.values[2, "mode"])
+}
+  
 experiment_A <- function(yA, mA) {
 
   dat <- list(
@@ -247,21 +246,34 @@ experiment_A <- function(yA, mA) {
     m = c(mA, 5, 100)
   )
   
-  formula <- y ~ 1 + f(id, 
-                     model = "besag", 
-                     graph = adj, 
-                     scale.model = TRUE, 
-                     constr = TRUE, 
-                     hyper = tau_prior)
+  formula_besag <- y ~ 1 + f(id, 
+                             model = "besag", 
+                             graph = adj, 
+                             scale.model = TRUE, 
+                             constr = TRUE, 
+                             hyper = tau_prior)
   
-  fit <- INLA::inla(formula,
+  formula_wicar <- y ~ 1 + f(id,
+                             model = wicar)
+  
+  fit_besag <- INLA::inla(formula_besag,
                     family = "binomial",
                     control.family = list(control.link = list(model = "logit")),
                     data = dat,
                     Ntrials = m,
                     control.predictor = list(compute = TRUE, link = 1))
   
-  return(list("mean" = fit$summary.fitted.values[2, "mean"], "mode" = fit$summary.fitted.values[2, "mode"]))
+  fit_wicar <- INLA::inla(formula_wicar,
+                   family = "binomial",
+                   control.family = list(control.link = list(model = "logit")),
+                   data = dat,
+                   Ntrials = m,
+                   control.predictor = list(compute = TRUE, link = 1))
+  
+  return(list(
+    "besag" = extract_info(fit_besag),
+    "wicar" = extract_info(fit_wicar)
+  ))
 }
 
 experiment_A(1, 1)
