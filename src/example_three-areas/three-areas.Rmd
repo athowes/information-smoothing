@@ -99,7 +99,8 @@ fit <- INLA::inla(formula,
                   control.family = list(control.link = list(model = "logit")),
                   data = dat,
                   Ntrials = m,
-                  control.predictor = list(compute = TRUE))
+                  control.predictor = list(compute = TRUE, link = 1),
+                  control.compute=list(return.marginals.predictor = TRUE))
 
 fit$summary.fitted.values
 ```
@@ -107,7 +108,7 @@ fit$summary.fitted.values
 The mode is `r fit$summary.fitted.values[2, "mode"]`
 
 ```{r}
-# plot(fit$marginals.fitted.values[[2]], type = "l")
+plot(fit$marginals.fitted.values[[2]], type = "l")
 ```
 
 \newpage
@@ -124,7 +125,8 @@ fit_jeff <- INLA::inla(formula_jeff,
                        control.family = list(control.link = list(model = "logit")),
                        data = dat,
                        Ntrials = m,
-                       control.predictor = list(compute = TRUE))
+                       control.predictor = list(compute = TRUE),
+                       control.compute=list(return.marginals.predictor = TRUE))
 
 fit_jeff$summary.fitted.values
 ```
@@ -132,7 +134,7 @@ fit_jeff$summary.fitted.values
 With this prior on the precision (I should check exactly what it is) all of the fitted values are close to zero (even in the first area).
 
 ```{r}
-# plot(fit_jeff$marginals.fitted.values[[2]], type = "l")
+plot(fit_jeff$marginals.fitted.values[[2]], type = "l")
 ```
 
 \newpage
@@ -219,10 +221,11 @@ fit3 <- INLA::inla(formula,
                    control.family = list(control.link = list(model = "logit")),
                    data = dat,
                    Ntrials = m,
-                   control.predictor = list(compute = TRUE, link = 1))
+                   control.predictor = list(compute = TRUE, link = 1),
+                   control.compute=list(return.marginals.predictor = TRUE))
 
 fit3$summary.fitted.values
-# plot(fit3$marginals.fitted.values[[2]], type = "l")
+plot(fit3$marginals.fitted.values[[2]], type = "l")
 ```
 Now the prediction in area 2 is very close to that in area 3, maybe too much.
 You can use some function of $m_i$ to reduce the effect e.g. $\log m_i$.
